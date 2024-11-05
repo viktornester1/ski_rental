@@ -1,0 +1,21 @@
+{% extends "base.html" %} # register.html
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-header">
+    <h2>Create New Account</h2>
+</div>
+<div class="auth-container">
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+</div>
+{% endblock %}

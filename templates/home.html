@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1>Welcome to Alpine Ski Rental</h1>
+        <p>Your premier destination for quality ski equipment</p>
+        <a href="{{ url_for('catalog') }}" class="cta-button">View Equipment</a>
+    </div>
+</div>
+
+<div class="features-section">
+    <div class="feature">
+        <div class="feature-image placeholder-image">
+            <!-- Image placeholder for: Professional fitting service -->
+        </div>
+        <h3>Professional Fitting</h3>
+        <p>Our expert staff ensures perfect fit for maximum comfort and performance</p>
+    </div>
+    <div class="feature">
+        <div class="feature-image placeholder-image">
+            <!-- Image placeholder for: Quality equipment -->
+        </div>
+        <h3>Quality Equipment</h3>
+        <p>Top brands and regularly maintained equipment for your safety</p>
+    </div>
+    <div class="feature">
+        <div class="feature-image placeholder-image">
+            <!-- Image placeholder for: Convenient locations -->
+        </div>
+        <h3>Convenient Locations</h3>
+        <p>Three locations near major ski resorts for your convenience</p>
+    </div>
+</div>
+
+<div class="locations-section">
+    <h2>Our Locations</h2>
+    <div class="locations-grid">
+        <div class="location">
+            <h3>Downtown Store</h3>
+            <p>123 Main Street<br>Alpine City, AC 12345</p>
+            <p>Tel: (555) 123-4567</p>
+        </div>
+        <div class="location">
+            <h3>Resort Location</h3>
+            <p>789 Slope Avenue<br>Mountain View, MV 67890</p>
+            <p>Tel: (555) 234-5678</p>
+        </div>
+        <div class="location">
+            <h3>Valley Branch</h3>
+            <p>456 Pine Road<br>Valley Town, VT 34567</p>
+            <p>Tel: (555) 345-6789</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
