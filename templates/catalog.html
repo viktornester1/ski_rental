@@ -1,9 +1,9 @@
-{% extends "base.html" %} #catalog.html
+{% extends "base.html" %}
 {% block title %}Catalog{% endblock %}
 {% block content %}
 <div class="catalog-container">
     <h2>Equipment Catalog</h2>
-    
+
     <div class="products-grid">
         {% for product in products %}
         <div class="product-card">
@@ -28,7 +28,7 @@
             <p>Price: ${{ "%.2f"|format(product[2]) }}</p>
             <p>Available: {{ product[3] }}</p>
             {% if product[3] > 0 %}
-            <a href="{{ url_for('add_to_cart', product_id=product[0]) }}" class="add-to-cart">
+            <a href="javascript:void(0)" onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')" class="add-to-cart">
                 Add to Cart
             </a>
             {% else %}

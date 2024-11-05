@@ -163,12 +163,11 @@ def catalog():
                            total=total)
 
 
-@app.route('/add_to_cart/<int:product_id>') # updates the user's wishlist
+@app.route('/add_to_cart/<int:product_id>')
 @login_required
 def add_to_cart(product_id):
     if current_user.is_admin:
-        flash('Admins cannot add items to cart.')
-        return redirect(url_for('catalog'))
+        return jsonify({'success': False, 'message': 'Admins cannot add items to cart.'})
 
     conn = sqlite3.connect('instance/catalog.db')
     cursor = conn.cursor()
@@ -184,7 +183,7 @@ def add_to_cart(product_id):
             if cart[product_id_str]['quantity'] < product[3]:  # Check stock
                 cart[product_id_str]['quantity'] += 1
             else:
-                flash('No more stock available for this item.')
+                return jsonify({'success': False, 'message': 'No more stock available'})
         else:
             if product[3] > 0:  # Check stock
                 cart[product_id_str] = {
@@ -194,10 +193,20 @@ def add_to_cart(product_id):
                 }
 
         session['cart'] = cart
-        # Save cart to database after modification
         save_cart_to_db(current_user.id, cart)
 
-    return redirect(url_for('catalog'))
+        # Generate updated cart HTML
+        cart_html = render_template('cart_items.html',
+                                    cart=cart,
+                                    total=sum(float(item['price']) * item['quantity'] for item in cart.values()))
+
+        return jsonify({
+            'success': True,
+            'cart_count': len(cart),
+            'cart_html': cart_html
+        })
+
+    return jsonify({'success': False, 'message': 'Product not found'})
 
 @app.route('/remove_from_cart/<int:product_id>')
 @login_required

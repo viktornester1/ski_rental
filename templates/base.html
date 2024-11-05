@@ -6,6 +6,7 @@
     <title>Ski Rental - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
 </head>
 <body>
     <nav>
@@ -18,10 +19,10 @@
                 <a href="{{ url_for('home') }}">Home</a>
                 <a href="{{ url_for('catalog') }}">Catalog</a>
                 {% if not current_user.is_admin %}
-                <div class="cart-icon" onclick="toggleCart()">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count">{{ session.get('cart', {})|length }}</span>
-                </div>
+                    <div class="cart-icon" onclick="toggleCart()">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count">{{ session.get('cart', {})|length }}</span>
+                    </div>
                 {% endif %}
                 <a href="{{ url_for('logout') }}">Logout</a>
             </div>
@@ -41,71 +42,71 @@
     {% block content %}{% endblock %}
 
     {% if request.endpoint in ['home', 'catalog'] %}
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h4>Contact Us</h4>
-                <p>Email: info@alpineskirental.com</p>
-                <p>Phone: (555) 123-4567</p>
-            </div>
-            <div class="footer-section">
-                <h4>Follow Us</h4>
-                <div class="social-icons">
-                    <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
-                    <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
-                    <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Contact Us</h4>
+                    <p>Email: info@alpineskirental.com</p>
+                    <p>Phone: (555) 123-4567</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <div class="social-icons">
+                        <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
+                        <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+                        <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Store Hours</h4>
+                    <p>Mon-Fri: 8am - 6pm</p>
+                    <p>Sat-Sun: 7am - 7pm</p>
                 </div>
             </div>
-            <div class="footer-section">
-                <h4>Store Hours</h4>
-                <p>Mon-Fri: 8am - 6pm</p>
-                <p>Sat-Sun: 7am - 7pm</p>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Alpine Ski Rental. All rights reserved.</p>
             </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Alpine Ski Rental. All rights reserved.</p>
-        </div>
-    </footer>
+        </footer>
     {% endif %}
 
     {% if current_user.is_authenticated and not current_user.is_admin %}
-    <div class="cart-modal" id="cartModal">
-        <div class="cart-content">
-            <div class="cart-header">
-                <h3>Shopping Cart</h3>
-                <span class="close-cart" onclick="toggleCart()">&times;</span>
-            </div>
-            <div id="cartItems">
-                {% if session.get('cart', {}) %}
-                <div class="cart-items">
-                    {% for product_id, item in session.get('cart', {}).items() %}
-                    <div class="cart-item">
-                        <span>{{ item.name }}</span>
-                        <span>${{ "%.2f"|format(item.price) }} x {{ item.quantity }}</span>
-                        <a href="{{ url_for('remove_from_cart', product_id=product_id) }}" class="remove-item">Remove</a>
-                    </div>
-                    {% endfor %}
+        <div class="cart-modal" id="cartModal">
+            <div class="cart-content">
+                <div class="cart-header">
+                    <h3>Shopping Cart</h3>
+                    <span class="close-cart" onclick="toggleCart()">&times;</span>
                 </div>
-                <div class="cart-total">
-                    <strong>Total: ${{ "%.2f"|format(total) }}</strong>
+                <div id="cartItems">
+                    {% if session.get('cart', {}) %}
+                        <div class="cart-items">
+                            {% for product_id, item in session.get('cart', {}).items() %}
+                                <div class="cart-item">
+                                    <span>{{ item.name }}</span>
+                                    <span>${{ "%.2f"|format(item.price) }} x {{ item.quantity }}</span>
+                                    <a href="{{ url_for('remove_from_cart', product_id=product_id) }}" class="remove-item">Remove</a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="cart-total">
+                            <strong>Total: ${{ "%.2f"|format(total) }}</strong>
+                        </div>
+                        <button onclick="buyProducts()" class="buy-button">Complete Purchase</button>
+                    {% else %}
+                        <p>Your cart is empty</p>
+                    {% endif %}
                 </div>
-                <button onclick="buyProducts()" class="buy-button">Complete Purchase</button>
-                {% else %}
-                <p>Your cart is empty</p>
-                {% endif %}
             </div>
         </div>
-    </div>
 
-    <div id="purchase-modal" class="purchase-modal">
-        <div class="purchase-content">
-            <h3>Purchase Complete!</h3>
-            <p>Thank you for your order.</p>
-            <button onclick="closePurchaseModal()" class="close-purchase">Close</button>
+        <div id="purchase-modal" class="purchase-modal">
+            <div class="purchase-content">
+                <h3>Purchase Complete!</h3>
+                <p>Thank you for your order.</p>
+                <button onclick="closePurchaseModal()" class="close-purchase">Close</button>
+            </div>
         </div>
-    </div>
 
-    <div id="add-to-cart-notification" class="add-to-cart-notification"></div>
+        <div id="add-to-cart-notification" class="add-to-cart-notification"></div>
     {% endif %}
 
     <script>
@@ -127,13 +128,60 @@
             modal.classList.toggle('active');
         }
 
+        // Enhanced cart functionality
+        function addToCart(productId, productName) {
+            event.preventDefault(); // Prevent default link behavior
+
+            // Add cart animation
+            const cartIcon = document.querySelector('.cart-icon');
+            cartIcon.classList.add('cart-bump');
+            setTimeout(() => cartIcon.classList.remove('cart-bump'), 300);
+
+            fetch(`/add_to_cart/${productId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Update cart count
+                        document.querySelector('.cart-count').textContent = data.cart_count;
+
+                        // Show notification
+                        showAddToCartNotification(productName);
+
+                        // Update cart modal content if it exists
+                        const cartItems = document.getElementById('cartItems');
+                        if (cartItems && data.cart_html) {
+                            cartItems.innerHTML = data.cart_html;
+                        }
+                    } else {
+                        alert(data.message || 'Failed to add item to cart');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while adding the item to cart');
+                });
+        }
+
+        function updateCartModal(cartHtml) {
+            document.getElementById('cartItems').innerHTML = cartHtml;
+        }
+
         function showAddToCartNotification(productName) {
             const notification = document.getElementById('add-to-cart-notification');
             notification.textContent = `${productName} added to cart`;
             notification.classList.add('show');
 
+            // Add slide-in animation
+            notification.style.animation = 'slideIn 0.3s ease-out';
+
             setTimeout(() => {
                 notification.classList.remove('show');
+                notification.style.animation = '';
             }, 2000);
         }
 
