@@ -662,3 +662,123 @@ footer {
         opacity: 1;
     }
 }
+/* Add to style.css */
+
+/* Product Details Page */
+.product-details-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.product-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.product-info h1 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.product-info .price {
+    font-size: 1.5rem;
+    color: #e74c3c;
+    margin-bottom: 0.5rem;
+}
+
+.product-info .stock {
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.product-info .description {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.specifications {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 4px;
+    margin-bottom: 2rem;
+}
+
+.specifications h2 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.specs-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.spec-label {
+    font-weight: bold;
+    color: #34495e;
+}
+
+
+/* Purchase History Page */
+.purchase-history-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.purchase-history-container h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+}
+
+.purchases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.purchase-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.purchase-card h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.purchase-card p {
+    margin-bottom: 0.5rem;
+    color: #7f8c8d;
+}
+
+.no-purchases {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 1.2rem;
+    padding: 2rem;
+}
+
+/* NEWW */
+.product-card .product-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+

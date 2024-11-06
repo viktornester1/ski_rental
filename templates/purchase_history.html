@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Purchase History{% endblock %}
+{% block content %}
+<div class="purchase-history-container">
+    <h1>Purchase History</h1>
+    
+    {% if purchases %}
+    <div class="purchases-grid">
+        {% for purchase in purchases %}
+        <div class="purchase-card">
+            <h3>{{ purchase[3] }}</h3>
+            <p>Quantity: {{ purchase[4] }}</p>
+            <p>Price: ${{ "%.2f"|format(purchase[5]) }}</p>
+            <p>Date: {{ purchase[6] }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-purchases">No purchase history available.</p>
+    {% endif %}
+</div>
+{% endblock %}

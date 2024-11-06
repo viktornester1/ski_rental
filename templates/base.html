@@ -19,6 +19,7 @@
                 <a href="{{ url_for('home') }}">Home</a>
                 <a href="{{ url_for('catalog') }}">Catalog</a>
                 {% if not current_user.is_admin %}
+                    <a href="{{ url_for('purchase_history') }}">History</a>
                     <div class="cart-icon" onclick="toggleCart()">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="cart-count">{{ session.get('cart', {})|length }}</span>

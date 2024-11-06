@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ product[1] }}{% endblock %}
+
+{% block content %}
+<div class="product-details-container">
+    <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
+    <h1>{{ product[1] }}</h1>
+    <p>Price: ${{ "%.2f"|format(product[2]) }}</p>
+
+    {% if not current_user.is_admin %}
+        {% if product[3] > 0 %}
+            <a href="javascript:void(0)"
+               onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')"
+               class="add-to-cart">
+                Add to Cart
+            </a>
+            <p>In Stock: {{ product[3] }}</p>
+        {% else %}
+            <p>Out of Stock</p>
+        {% endif %}
+    {% endif %}
+
+    <p>{{ product[5] }}</p>
+
+    <h2>Specifications</h2>
+    {% for key, value in specifications.items() %}
+        <p><strong>{{ key }}</strong>: {{ value }}</p>
+    {% endfor %}
+</div>
+{% endblock %}

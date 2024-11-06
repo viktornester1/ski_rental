@@ -248,43 +248,95 @@ def buy_products():
     if not cart:
         return jsonify({'success': False, 'message': 'Your cart is empty.'})
 
-    conn = sqlite3.connect('instance/catalog.db')
-    cursor = conn.cursor()
+    conn_catalog = sqlite3.connect('instance/catalog.db')
+    conn_users = sqlite3.connect('instance/users.db')
+    cursor_catalog = conn_catalog.cursor()
+    cursor_users = conn_users.cursor()
 
     try:
-        # Check stock availability for all items
+        # Check stock availability and update stock
         for product_id, item in cart.items():
-            cursor.execute('SELECT stock FROM products WHERE id = ?', (product_id,))
-            current_stock = cursor.fetchone()[0]
+            cursor_catalog.execute('SELECT stock FROM products WHERE id = ?', (product_id,))
+            current_stock = cursor_catalog.fetchone()[0]
 
             if current_stock < item['quantity']:
-                conn.close()
-                return jsonify({
-                    'success': False,
-                    'message': f'Not enough stock available for {item["name"]}'
-                })
+                raise Exception(f'Not enough stock available for {item["name"]}')
 
-        # Update stock for all items
-        for product_id, item in cart.items():
-            cursor.execute('''
+            # Update stock
+            cursor_catalog.execute('''
                 UPDATE products 
                 SET stock = stock - ? 
                 WHERE id = ?
             ''', (item['quantity'], product_id))
 
-        conn.commit()
+            # Record purchase in history
+            cursor_users.execute('''
+                INSERT INTO purchase_history 
+                (user_id, product_id, product_name, quantity, price)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (current_user.id, product_id, item['name'],
+                  item['quantity'], item['price']))
+
+        conn_catalog.commit()
+        conn_users.commit()
+
+        # Clear cart
         session.pop('cart', None)
-        # Clear cart in database after successful purchase
         save_cart_to_db(current_user.id, {})
 
         return jsonify({'success': True, 'message': 'Purchase successful!'})
 
     except Exception as e:
-        conn.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred during purchase.'})
+        conn_catalog.rollback()
+        conn_users.rollback()
+        return jsonify({'success': False, 'message': str(e)})
 
     finally:
-        conn.close()
+        conn_catalog.close()
+        conn_users.close()
+
+
+@app.route('/product/<int:product_id>')
+def product_details(product_id):
+    conn = sqlite3.connect('instance/catalog.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM products WHERE id = ?', (product_id,))
+    product = cursor.fetchone()
+    conn.close()
+
+    if product:
+        specifications = json.loads(product[6]) if product[6] else {}
+        # Calculate cart total
+        cart = session.get('cart', {})
+        total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+        return render_template('product_details.html',
+                             product=product,
+                             specifications=specifications,
+                             total=total)
+    return redirect(url_for('catalog'))
+
+
+@app.route('/purchase_history')
+@login_required
+def purchase_history():
+    if current_user.is_admin:
+        return redirect(url_for('catalog'))
+
+    conn = sqlite3.connect('instance/users.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT * FROM purchase_history 
+        WHERE user_id = ? 
+        ORDER BY purchase_date DESC
+    ''', (current_user.id,))
+    purchases = cursor.fetchall()
+    conn.close()
+
+    # Calculate the total for the cart
+    cart = session.get('cart', {})
+    total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+
+    return render_template('purchase_history.html', purchases=purchases, total=total)
 
 
 if __name__ == '__main__':
