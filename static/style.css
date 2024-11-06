@@ -781,4 +781,95 @@ footer {
     color: inherit;
     display: block;
 }
+/* IMAGES slider */
+.hero-section {
+    height: 93vh;
+    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/static/images/hero/hero-ski-resort.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    transition: background-image 0.5s ease;  /* Add this line for smooth transitions */
+}
 
+/* Features Section Updates */
+.feature-image {
+    width: 100%;
+    height: 300px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.feature-image.fitting {
+    background-image: url('/static/images/features/fitting.jpg');
+}
+
+.feature-image.equipment {
+    background-image: url('/static/images/features/equipment.jpg');
+}
+
+.feature-image.location {
+    background-image: url('/static/images/features/location.jpg');
+}
+
+.welcome-text {
+    max-width: 1500px;
+    margin: 8rem auto;
+    padding: 2rem;
+    text-align: center;
+    color: #2c3e50;
+    line-height: 1.8;
+    font-size: 1.6rem;
+    font-weight: 500;
+    background-color: #f8f9fa; /* Neutral light gray */
+    border-radius: 8px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.05); /* Soft shadow for depth */
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-section {
+    position: relative; /* Make sure this is added if not already present */
+}
+
+/* slides arrows */
+.slide-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2); /* Reduced opacity */
+    border: none;
+    color: white;
+    padding: 16px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.slide-nav:hover {
+    background: rgba(255, 255, 255, 0.4); /* Slightly less transparent on hover */
+}
+
+.prev {
+    left: 20px;
+}
+
+.next {
+    right: 20px;
+}
