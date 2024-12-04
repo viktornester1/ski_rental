@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ski-rental
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ski-rental
+  template:
+    metadata:
+      labels:
+        app: ski-rental
+    spec:
+      containers:
+      - name: ski-rental
+        image: viktory11q8/ski-rental:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_APP
+          value: app.py
+        - name: FLASK_RUN_HOST
+          value: 0.0.0.0
+        - name: FLASK_RUN_PORT
+          value: "5000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ski-rental
+spec:
+  selector:
+    app: ski-rental
+  ports:
+  - port: 80
+    targetPort: 5000
