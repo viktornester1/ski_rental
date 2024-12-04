@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - 5000:5000
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+    depends_on:
+      - db
+
+  db:
+    image: debian:bullseye-slim
+    volumes:
+      - db-data:/var/lib/sqlite
+    command: |
+      /bin/bash -c "
+        apt-get update && apt-get install -y sqlite3 && 
+        sqlite3 /var/lib/sqlite/database.db 'CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY);'
+      "
+
+volumes:
+  db-data:
