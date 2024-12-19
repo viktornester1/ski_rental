@@ -1,90 +1,33 @@
-replicaCount: 1
-
 image:
   repository: viktory11q8/ski-rental
-  pullPolicy: IfNotPresent
   tag: latest
+  pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 5000
 
 serviceAccount:
   create: true
-  automount: true
-  annotations: {}
   name: ""
-
-podAnnotations: {}
-podLabels: {}
-
-podSecurityContext: {}
-# fsGroup: 2000
-
-securityContext: {}
-# capabilities:
-#   drop:
-#   - ALL
-# readOnlyRootFilesystem: true
-# runAsNonRoot: true
-# runAsUser: 1000
-
-service:
-  type: ClusterIP
-  port: 5000
+  annotations: {}
+  automountServiceAccountToken: true
 
 ingress:
   enabled: true
-  className: ""
+  className: nginx
   annotations:
-    kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
   hosts:
-    - host: ski-rental.local
+    - host: ski-rental.example.com
       paths:
         - path: /
           pathType: Prefix
-  tls: []
-  # - secretName: chart-example-tls
-  #   hosts:
-  #     - chart-example.local
-
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
-
-livenessProbe:
-  httpGet:
-    path: /
-    port: 5000
-
-readinessProbe:
-  httpGet:
-    path: /
-    port: 5000
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
-
-nodeSelector: {}
-tolerations: []
-affinity: {}
+          backend:
+            service:
+              name: ski-rental
+              port:
+                number: 80

@@ -1,15 +1,19 @@
+# service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "ski-rental.fullname" . }}
+  name: ski-rental
   labels:
-    {{- include "ski-rental.labels" . | nindent 4 }}
+    app: ski-rental
+  annotations:
+    # AWS-specific annotation
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
 spec:
-  type: {{ .Values.service.type }}
+  type: LoadBalancer
+  selector:
+    app: ski-rental
   ports:
     - port: 80
-      targetPort: 5000  # Change the targetPort to match your application's port
+      targetPort: 5000
       protocol: TCP
-      name: http
-  selector:
-    {{- include "ski-rental.selectorLabels" . | nindent 4 }}
+
