@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ski-rental.fullname" . }}
+  labels:
+    {{- include "ski-rental.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 80
+      targetPort: 5000  # Change the targetPort to match your application's port
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ski-rental.selectorLabels" . | nindent 4 }}
