@@ -3,28 +3,70 @@
 
 {% block content %}
 <div class="product-details-container">
-    <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
-    <h1>{{ product[1] }}</h1>
-    <p>Price: ${{ "%.2f"|format(product[2]) }}</p>
+    <div class="product-details">
+        <div class="product-image">
+            <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
+        </div>
+        <div class="product-info">
+            <h1>{{ product[1] }}</h1>
+            <div class="price">Price: ${{ "%.2f"|format(product[2]) }}</div>
+            
+            <div class="stock-info">
+                {% if not current_user.is_admin %}
+                    {% if product[3] > 0 %}
+                        <p class="in-stock" data-product-stock="{{ product[0] }}">In Stock: {{ product[3] }} items</p>
+                        {% if current_user.is_authenticated %}
+                            <a href="javascript:void(0)"
+                               onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')"
+                               class="add-to-cart"
+                               data-product-id="{{ product[0] }}">
+                                Add to Cart
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="add-to-cart login-required">
+                                Login to Purchase
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <p class="out-of-stock" data-product-stock="{{ product[0] }}">Out of Stock</p>
+                    {% endif %}
+                {% else %}
+                    <p class="in-stock">In Stock: {{ product[3] }} items</p>
+                {% endif %}
+            </div>
 
-    {% if not current_user.is_admin %}
-        {% if product[3] > 0 %}
-            <a href="javascript:void(0)"
-               onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')"
-               class="add-to-cart">
-                Add to Cart
-            </a>
-            <p>In Stock: {{ product[3] }}</p>
-        {% else %}
-            <p>Out of Stock</p>
-        {% endif %}
-    {% endif %}
+            <div class="description">
+                <h2>Description</h2>
+                <p>{{ product[5] }}</p>
+            </div>
 
-    <p>{{ product[5] }}</p>
-
-    <h2>Specifications</h2>
-    {% for key, value in specifications.items() %}
-        <p><strong>{{ key }}</strong>: {{ value }}</p>
-    {% endfor %}
+            <div class="specifications">
+                <h2>Specifications</h2>
+                <div class="specs-grid">
+                    {% for key, value in specifications.items() %}
+                        <div class="spec-item">
+                            <span class="spec-label">{{ key }}</span>
+                            <span class="spec-value">{{ value }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+{% if not current_user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginButtons = document.querySelectorAll('.login-required');
+    loginButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const currentPath = encodeURIComponent(window.location.pathname);
+            window.location.href = "{{ url_for('login') }}?next=" + currentPath;
+        });
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

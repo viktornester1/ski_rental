@@ -2,43 +2,303 @@
 {% block title %}Catalog{% endblock %}
 {% block content %}
 <div class="catalog-container">
-    <h2>Equipment Catalog</h2>
+    <h1 class="catalog-title">Equipment Catalog</h1>
+    {% if not current_user.is_authenticated %}
+    <div class="auth-notice">
+        <p>Welcome to our catalog! To make purchases, please <a href="{{ url_for('login') }}">log in</a> or <a href="{{ url_for('register') }}">register</a>.</p>
+    </div>
+    {% endif %}
+
+    <div class="filter-container">
+        <button class="filter-button" onclick="toggleFilterMenu()">
+            <i class="fas fa-filter"></i>
+        </button>
+        <div class="filter-menu" id="filterMenu">
+            <a href="{{ url_for('catalog') }}" class="filter-option {% if not current_filter %}active{% endif %}">All</a>
+            <a href="{{ url_for('catalog', type='ski') }}" class="filter-option {% if current_filter == 'ski' %}active{% endif %}">Skis</a>
+            <a href="{{ url_for('catalog', type='snowboard') }}" class="filter-option {% if current_filter == 'snowboard' %}active{% endif %}">Snowboards</a>
+        </div>
+    </div>
 
     <div class="products-grid">
         {% for product in products %}
         <div class="product-card">
-            <a href="{{ url_for('product_details', product_id=product[0]) }}" class="product-link">
-                <div class="product-image">
-                    <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
-                </div>
-                <h3>{{ product[1] }}</h3>
-            </a>
             {% if current_user.is_admin %}
-            <form method="POST" action="{{ url_for('update_product') }}" class="admin-form">
-                <input type="hidden" name="product_id" value="{{ product[0] }}">
-                <div class="form-group">
-                    <label>Price ($):</label>
-                    <input type="number" name="price" value="{{ product[2] }}" step="0.01" min="0" required>
+                <a href="{{ url_for('product_details', product_id=product[0]) }}" class="product-link">
+                    <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
+                </a>
+                <div class="product-info">
+                    <h3>{{ product[1] }}</h3>
+                    <form id="admin-form-{{ product[0] }}" class="admin-form" onsubmit="updateProduct(event, {{ product[0] }})">
+                        <input type="hidden" name="product_id" value="{{ product[0] }}">
+                        <div class="form-group">
+                            <label>Price:</label>
+                            <input type="number" name="price" id="price-{{ product[0] }}" value="{{ product[2] }}" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock:</label>
+                            <input type="number" name="stock" id="stock-{{ product[0] }}" value="{{ product[3] }}" required>
+                        </div>
+                        <button type="submit">Update</button>
+                    </form>
+                    <div id="update-status-{{ product[0] }}" class="update-status"></div>
                 </div>
-                <div class="form-group">
-                    <label>Stock:</label>
-                    <input type="number" name="stock" value="{{ product[3] }}" min="0" required>
-                </div>
-                <button type="submit">Update</button>
-            </form>
             {% else %}
-            <p>Price: ${{ "%.2f"|format(product[2]) }}</p>
-            <p>Available: {{ product[3] }}</p>
-            {% if product[3] > 0 %}
-            <a href="javascript:void(0)" onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')" class="add-to-cart">
-                Add to Cart
-            </a>
-            {% else %}
-            <p class="out-of-stock">Out of Stock</p>
-            {% endif %}
+                <a href="{{ url_for('product_details', product_id=product[0]) }}" class="product-link">
+                    <img src="{{ url_for('static', filename='images/' + product[4]) }}" alt="{{ product[1] }}">
+                    <div class="product-info">
+                        <h3>{{ product[1] }}</h3>
+                        <p>Price: ${{ "%.2f"|format(product[2]) }}</p>
+                        {% if product[3] > 0 %}
+                            <p data-product-stock="{{ product[0] }}">Available: {{ product[3] }}</p>
+                            {% if current_user.is_authenticated %}
+                            <a href="javascript:void(0)"
+                               onclick="addToCart('{{ product[0] }}', '{{ product[1] }}')"
+                               class="add-to-cart"
+                               data-product-id="{{ product[0] }}">
+                                Add to Cart
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('login') }}" class="add-to-cart login-required">
+                                Login to Purchase
+                            </a>
+                            {% endif %}
+                        {% else %}
+                            <p data-product-stock="{{ product[0] }}" style="color: #e74c3c;">Out of Stock</p>
+                        {% endif %}
+                    </div>
+                </a>
             {% endif %}
         </div>
         {% endfor %}
     </div>
 </div>
+
+<div class="pagination">
+    <div class="pagination-container">
+        <a href="#" class="page-link active">1</a>
+        <a href="#" class="page-link">2</a>
+        <a href="#" class="page-link">3</a>
+        <span class="page-ellipsis">...</span>
+        <a href="#" class="page-link">10</a>
+    </div>
+</div>
+
+<style>
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0 3rem;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.5rem;
+    color: #2d3748;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+}
+
+.page-link:hover {
+    background-color: #edf2f7;
+    color: #1a202c;
+    transform: translateY(-1px);
+}
+
+.page-link.active {
+    background-color: #3182ce;
+    border-color: #3182ce;
+    color: white;
+    font-weight: 700;
+}
+
+.page-ellipsis {
+    color: #4a5568;
+    padding: 0 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Filter styles */
+.filter-container {
+    position: relative;
+    margin: 0.5rem 0 1rem;
+}
+
+.filter-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-button:hover {
+    background-color: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.filter-button i {
+    font-size: 0.875rem;
+}
+
+.filter-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+    min-width: 150px;
+}
+
+.filter-menu.active {
+    display: block;
+}
+
+.filter-option {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #4a5568;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.filter-option:hover {
+    background-color: #f7fafc;
+    color: #2d3748;
+}
+
+.filter-option.active {
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+    font-weight: 500;
+}
+</style>
+
+{% if current_user.is_admin %}
+<script>
+    function updateProduct(event, productId) {
+        event.preventDefault();
+        
+        const priceElement = document.getElementById(`price-${productId}`);
+        const stockElement = document.getElementById(`stock-${productId}`);
+        const statusElement = document.getElementById(`update-status-${productId}`);
+        
+        // Get values and validate
+        const price = parseFloat(priceElement.value);
+        const stock = parseInt(stockElement.value);
+        
+        if (isNaN(price) || price <= 0 || isNaN(stock) || stock < 0) {
+            statusElement.textContent = 'Invalid values. Price must be positive, and stock cannot be negative.';
+            statusElement.className = 'update-status error';
+            return;
+        }
+        
+        // Show loading state
+        const form = document.getElementById(`admin-form-${productId}`);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Updating...';
+        
+        // Send AJAX request
+        fetch('{{ url_for("update_product") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                price: price,
+                stock: stock
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                statusElement.textContent = 'Product updated successfully!';
+                statusElement.className = 'update-status success';
+                
+                // Automatically hide the message after 3 seconds
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = 'update-status';
+                }, 3000);
+            } else {
+                // Show error message
+                statusElement.textContent = data.message || 'Failed to update product.';
+                statusElement.className = 'update-status error';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusElement.textContent = 'An error occurred. Please try again.';
+            statusElement.className = 'update-status error';
+        })
+        .finally(() => {
+            // Restore button state
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        });
+    }
+</script>
+{% endif %}
+
+{% if not current_user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginButtons = document.querySelectorAll('.login-required');
+    loginButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const currentPath = encodeURIComponent(window.location.pathname);
+            window.location.href = "{{ url_for('login') }}?next=" + currentPath;
+        });
+    });
+});
+</script>
+{% endif %}
+
+<script>
+function toggleFilterMenu() {
+    const menu = document.getElementById('filterMenu');
+    menu.classList.toggle('active');
+}
+
+// Close filter menu when clicking outside
+document.addEventListener('click', function(event) {
+    const filterContainer = document.querySelector('.filter-container');
+    const filterMenu = document.getElementById('filterMenu');
+    
+    if (!filterContainer.contains(event.target)) {
+        filterMenu.classList.remove('active');
+    }
+});
+</script>
 {% endblock %}

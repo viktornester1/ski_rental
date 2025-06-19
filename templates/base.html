@@ -3,21 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ski Rental - {% block title %}{% endblock %}</title>
+    <title>{% block title %}{% endblock %} - Alpine Ski Shop</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon.png') }}">
+    <meta name="msapplication-TileImage" content="{{ url_for('static', filename='images/icon.png') }}">
+    <meta name="msapplication-TileColor" content="#2c3e50">
+    
 </head>
-<body>
+<body class="{{ 'home-page' if request.endpoint == 'home' }}">
     <nav>
         <div class="nav-brand">
-            <a href="{{ url_for('home') }}">Alpine Ski Rental</a>
+            <a href="{{ url_for('home') }}">Alpine Ski Shop</a>
         </div>
-        {% if current_user.is_authenticated %}
+        {% if current_user.is_authenticated and not current_user.is_admin %}
             <div class="nav-welcome">Welcome, {{ current_user.username }}!</div>
-            <div class="nav-links">
-                <a href="{{ url_for('home') }}">Home</a>
-                <a href="{{ url_for('catalog') }}">Catalog</a>
+        {% endif %}
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('catalog') }}">Catalog</a>
+            {% if current_user.is_authenticated %}
                 {% if not current_user.is_admin %}
                     <a href="{{ url_for('purchase_history') }}">History</a>
                     <div class="cart-icon" onclick="toggleCart()">
@@ -26,9 +37,15 @@
                     </div>
                 {% endif %}
                 <a href="{{ url_for('logout') }}">Logout</a>
-            </div>
-        {% endif %}
+            {% else %}
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="auth-btn">Login</a>
+                    <a href="{{ url_for('register') }}" class="auth-btn">Register</a>
+                </div>
+            {% endif %}
+        </div>
     </nav>
+    <div class="nav-hero-spacer"></div>
 
     <div id="flash-messages">
         {% with messages = get_flashed_messages() %}
@@ -47,7 +64,7 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>Contact Us</h4>
-                    <p>Email: info@alpineskirental.com</p>
+                    <p>Email: info@alpineskishop.com</p>
                     <p>Phone: (555) 123-4567</p>
                 </div>
                 <div class="footer-section">
@@ -65,7 +82,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 Alpine Ski Rental. All rights reserved.</p>
+                <p>&copy; 2025 Alpine Ski Shop. All rights reserved.</p>
             </div>
         </footer>
     {% endif %}
@@ -101,13 +118,85 @@
 
         <div id="purchase-modal" class="purchase-modal">
             <div class="purchase-content">
-                <h3>Purchase Complete!</h3>
-                <p>Thank you for your order.</p>
-                <button onclick="closePurchaseModal()" class="close-purchase">Close</button>
+                <div class="payment-view">
+                    <div class="payment-header">
+                        <button class="back-to-cart" onclick="showCartModal()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h3>Complete Your Purchase</h3>
+                        <span class="close-payment" onclick="closePurchaseModal()">&times;</span>
+                    </div>
+                    <div class="total-amount">
+                        Total: $<span id="modal-total">0.00</span>
+                    </div>
+                    <div class="payment-methods">
+                        <div class="payment-method active" onclick="selectPaymentMethod('card')">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Credit Card</span>
+                        </div>
+                        <div class="payment-method" onclick="selectPaymentMethod('paypal')">
+                            <i class="fab fa-paypal"></i>
+                            <span>PayPal</span>
+                        </div>
+                        <div class="payment-method" onclick="selectPaymentMethod('apple')">
+                            <i class="fab fa-apple"></i>
+                            <span>Apple Pay</span>
+                        </div>
+                    </div>
+                    <div id="payment-forms">
+                        <form id="card-form" class="payment-form active">
+                            <div class="form-group">
+                                <label>Card Number</label>
+                                <input type="text" id="card-number" placeholder="1234 5678 9012 3456" maxlength="19" onkeyup="formatCardNumber(this)">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Expiry Date</label>
+                                    <input type="text" id="expiry-date" placeholder="MM/YY" maxlength="5" onkeyup="formatExpiryDate(this)">
+                                </div>
+                                <div class="form-group">
+                                    <label>CVV</label>
+                                    <input type="text" id="cvv" placeholder="123" maxlength="3" onkeyup="formatCVV(this)">
+                                </div>
+                            </div>
+                        </form>
+                        <form id="paypal-form" class="payment-form">
+                            <div class="paypal-info">
+                                <i class="fab fa-paypal"></i>
+                                <p>You will be redirected to PayPal to complete your purchase</p>
+                            </div>
+                        </form>
+                        <form id="apple-form" class="payment-form">
+                            <div class="apple-redirect-info">
+                                <i class="fab fa-apple"></i>
+                                <p>You will be redirected to Apple Pay to complete your purchase</p>
+                            </div>
+                        </form>
+                    </div>
+                    <button onclick="processPayment()" class="payment-button">Pay Now</button>
+                </div>
+                <div class="payment-success" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Payment Successful!</h3>
+                    <p>Thank you for your purchase.</p>
+                    <div class="order-info">
+                        Order #<span id="order-number"></span>
+                    </div>
+                    <button onclick="closePurchaseModal()" class="close-purchase">Continue Shopping</button>
+                </div>
             </div>
         </div>
 
         <div id="add-to-cart-notification" class="add-to-cart-notification"></div>
+
+        <!-- сustom validation error notification -->
+        <div id="payment-validation-error" class="payment-validation-error">
+            <div class="validation-content">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="validation-message">Please fill in all card details.</span>
+                <button onclick="hideValidationError()" class="close-validation">OK</button>
+            </div>
+        </div>
     {% endif %}
 
     <script>
@@ -122,6 +211,41 @@
                     }, 500);
                 }, 3000);
             });
+
+            // Add click event listeners for remove buttons
+            document.body.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-item') || e.target.classList.contains('decrement-item')) {
+                    e.preventDefault();
+                    const link = e.target;
+                    const cartItem = link.closest('.cart-item');
+                    // Add fade-out animation only for remove-item
+                    if (link.classList.contains('remove-item')) {
+                        cartItem.style.transition = 'all 0.3s ease';
+                        cartItem.style.opacity = '0';
+                        cartItem.style.transform = 'translateX(20px)';
+                    }
+                    fetch(link.href)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.querySelector('.cart-count').textContent = data.cart_count;
+                                setTimeout(() => {
+                                    document.getElementById('cartItems').innerHTML = data.cart_html;
+                                }, link.classList.contains('remove-item') ? 300 : 0);
+                                const cartIcon = document.querySelector('.cart-icon');
+                                cartIcon.style.transform = 'scale(0.8)';
+                                setTimeout(() => {
+                                    cartIcon.style.transform = 'scale(1)';
+                                }, 200);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            cartItem.style.opacity = '1';
+                            cartItem.style.transform = 'translateX(0)';
+                        });
+                }
+            });
         });
 
         function toggleCart() {
@@ -129,90 +253,232 @@
             modal.classList.toggle('active');
         }
 
-        // Enhanced cart functionality
-        function addToCart(productId, productName) {
-            event.preventDefault(); // Prevent default link behavior
-
-            // Add cart animation
-            const cartIcon = document.querySelector('.cart-icon');
-            cartIcon.classList.add('cart-bump');
-            setTimeout(() => cartIcon.classList.remove('cart-bump'), 300);
-
-            fetch(`/add_to_cart/${productId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Update cart count
-                        document.querySelector('.cart-count').textContent = data.cart_count;
-
-                        // Show notification
-                        showAddToCartNotification(productName);
-
-                        // Update cart modal content if it exists
-                        const cartItems = document.getElementById('cartItems');
-                        if (cartItems && data.cart_html) {
-                            cartItems.innerHTML = data.cart_html;
-                        }
-                    } else {
-                        alert(data.message || 'Failed to add item to cart');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while adding the item to cart');
-                });
-        }
-
-        function updateCartModal(cartHtml) {
-            document.getElementById('cartItems').innerHTML = cartHtml;
-        }
-
-        function showAddToCartNotification(productName) {
+        function showNotification(message, type = 'success') {
             const notification = document.getElementById('add-to-cart-notification');
-            notification.textContent = `${productName} added to cart`;
+            notification.textContent = message;
+            notification.className = `add-to-cart-notification ${type}`;
             notification.classList.add('show');
-
+            
             // Add slide-in animation
             notification.style.animation = 'slideIn 0.3s ease-out';
-
+            
             setTimeout(() => {
                 notification.classList.remove('show');
                 notification.style.animation = '';
             }, 2000);
         }
 
+        function addToCart(productId, productName) {
+            event.preventDefault();
+
+            const cartIcon = document.querySelector('.cart-icon');
+            cartIcon.classList.add('cart-bump');
+            setTimeout(() => cartIcon.classList.remove('cart-bump'), 300);
+
+            fetch(`/add_to_cart/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector('.cart-count').textContent = data.cart_count;
+                        showNotification(`${productName} added to cart`);
+                        
+                        const cartItems = document.getElementById('cartItems');
+                        if (cartItems && data.cart_html) {
+                            cartItems.innerHTML = data.cart_html;
+                        }
+                    } else {
+                        showNotification(data.message || 'Failed to add item to cart', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while adding the item to cart', 'error');
+                });
+        }
+
+        function showCartModal() {
+            document.getElementById('purchase-modal').classList.remove('active');
+            document.getElementById('cartModal').classList.add('active');
+        }
+
         function buyProducts() {
-            fetch('{{ url_for("buy_products") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+            // Update the total in the payment modal
+            const total = document.querySelector('.cart-total strong').textContent.split('$')[1];
+            document.getElementById('modal-total').textContent = total;
+            
+            // Reset payment form to initial state
+            document.querySelector('.payment-view').style.display = 'block';
+            document.querySelector('.payment-success').style.display = 'none';
+            
+            // Reset payment button state
+            const paymentButton = document.querySelector('.payment-button');
+            paymentButton.disabled = false;
+            paymentButton.textContent = 'Pay Now';
+            
+            // Reset payment method selection
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.payment-form').forEach(el => el.classList.remove('active'));
+            document.querySelector('.payment-method:first-child').classList.add('active');
+            document.querySelector('.payment-form:first-child').classList.add('active');
+            
+            // Clear any validation errors
+            hideValidationError();
+            
+            // Show payment modal
+            document.getElementById('cartModal').classList.remove('active');
+            const purchaseModal = document.getElementById('purchase-modal');
+            purchaseModal.classList.add('active');
+        }
+
+        function selectPaymentMethod(method) {
+            // Remove active class from all methods
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.payment-form').forEach(el => el.classList.remove('active'));
+            
+            // Add active class to selected method
+            const methodIcon = method === 'card' ? 'credit-card' : method;
+            document.querySelector(`.payment-method:has(i.fa-${method === 'apple' ? 'apple' : methodIcon})`).classList.add('active');
+            document.getElementById(`${method}-form`).classList.add('active');
+        }
+
+        function generateOrderNumber() {
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            return `${timestamp}-${random}`;
+        }
+
+        function processPayment() {
+            // Get the active payment method
+            const activeMethod = document.querySelector('.payment-method.active');
+            const method = activeMethod.querySelector('span').textContent.toLowerCase();
+
+            // Validate credit card fields if credit card is selected
+            if (method === 'credit card') {
+                const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+                const expiryDate = document.getElementById('expiry-date').value;
+                const cvv = document.getElementById('cvv').value;
+
+                if (!cardNumber || cardNumber.length < 16) {
+                    showValidationError('Please enter a valid 16-digit card number');
+                    return;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('cartModal').classList.remove('active');
-                    document.getElementById('purchase-modal').classList.add('active');
-                } else {
-                    alert(data.message);
+
+                if (!expiryDate || !expiryDate.match(/^\d{2}\/\d{2}$/)) {
+                    showValidationError('Please enter a valid expiry date (MM/YY)');
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred during purchase.');
-            });
+
+                if (!cvv || cvv.length < 3) {
+                    showValidationError('Please enter a valid 3-digit CVV');
+                    return;
+                }
+            }
+
+            // Show loading state
+            const paymentButton = document.querySelector('.payment-button');
+            const originalText = paymentButton.textContent;
+            paymentButton.disabled = true;
+            paymentButton.textContent = 'Processing...';
+
+            // Add a small delay to show the processing state
+            setTimeout(() => {
+                // Process payment
+                fetch('{{ url_for("buy_products") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update cart count and clear cart items
+                        document.querySelector('.cart-count').textContent = '0';
+                        document.getElementById('cartItems').innerHTML = '<p>Your cart is empty</p>';
+                        
+                        // Update stock numbers for all purchased items
+                        if (data.updated_products) {
+                            data.updated_products.forEach(product => {
+                                const stockElement = document.querySelector(`[data-product-stock="${product.id}"]`);
+                                if (stockElement) {
+                                    stockElement.textContent = `Available: ${product.stock}`;
+                                }
+                                
+                                const addToCartBtn = document.querySelector(`[data-product-id="${product.id}"]`);
+                                if (addToCartBtn && product.stock <= 0) {
+                                    addToCartBtn.style.display = 'none';
+                                    const stockText = document.querySelector(`[data-product-stock="${product.id}"]`);
+                                    if (stockText) {
+                                        stockText.textContent = 'Out of Stock';
+                                        stockText.style.color = '#e74c3c';
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Generate and display order number
+                        document.getElementById('order-number').textContent = generateOrderNumber();
+                        
+                        // Show success view
+                        document.querySelector('.payment-view').style.display = 'none';
+                        document.querySelector('.payment-success').style.display = 'block';
+                        
+                    } else {
+                        showValidationError(data.message || 'Payment failed. Please try again.');
+                        paymentButton.disabled = false;
+                        paymentButton.textContent = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showValidationError('An error occurred. Please try again.');
+                    paymentButton.disabled = false;
+                    paymentButton.textContent = originalText;
+                });
+            }, 1000); // Add a 1-second delay
+        }
+
+        function showValidationError(message) {
+            const validationError = document.getElementById('payment-validation-error');
+            document.getElementById('validation-message').textContent = message;
+            validationError.classList.add('show');
+        }
+
+        function hideValidationError() {
+            document.getElementById('payment-validation-error').classList.remove('show');
         }
 
         function closePurchaseModal() {
+            // Reset payment form state when closing
+            const paymentButton = document.querySelector('.payment-button');
+            paymentButton.disabled = false;
+            paymentButton.textContent = 'Pay Now';
+            
+            // Hide modal
             document.getElementById('purchase-modal').classList.remove('active');
-            window.location.reload();
+        }
+
+        function formatCardNumber(input) {
+            let value = input.value.replace(/\D/g, '');
+            value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+            input.value = value;
+        }
+
+        function formatExpiryDate(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0,2) + '/' + value.slice(2);
+                }
+            input.value = value;
+        }
+
+        function formatCVV(input) {
+            input.value = input.value.replace(/\D/g, '');
         }
     </script>
 
+    {% if current_user.is_authenticated and not current_user.is_admin %}
+        <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+    {% endif %}
 </body>
 </html>

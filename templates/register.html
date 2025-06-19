@@ -9,11 +9,39 @@
             <input type="text" id="username" name="username" required>
         </div>
         <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
         </div>
-        <button type="submit">Register</button>
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password:</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        <div class="form-group terms">
+            <label class="checkbox-label">
+                <input type="checkbox" id="terms" name="terms" required>
+                <span>I agree to the <a href="#">Terms</a> and <a href="#">Privacy</a></span>
+            </label>
+        </div>
+        <button type="submit" class="register-btn">Create Account</button>
     </form>
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    <div class="divider">
+        <span>or continue with</span>
+    </div>
+    <div class="social-login">
+        <a href="https://accounts.google.com/signup" target="_blank" class="social-btn google-btn" title="Sign up with Google">
+            <i class="fab fa-google"></i>
+        </a>
+        <a href="https://www.facebook.com/r.php" target="_blank" class="social-btn facebook-btn" title="Sign up with Facebook">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://appleid.apple.com/account" target="_blank" class="social-btn apple-btn" title="Sign up with Apple">
+            <i class="fab fa-apple"></i>
+        </a>
+    </div>
+    <p class="auth-footer">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
 </div>
 {% endblock %}

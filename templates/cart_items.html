@@ -1,17 +1,20 @@
 {% if session.get('cart', {}) %}
-<div class="cart-items">
-    {% for product_id, item in session.get('cart', {}).items() %}
-    <div class="cart-item">
-        <span>{{ item.name }}</span>
-        <span>${{ "%.2f"|format(item.price) }} x {{ item.quantity }}</span>
-        <a href="{{ url_for('remove_from_cart', product_id=product_id) }}" class="remove-item">Remove</a>
+    <div class="cart-items">
+        {% for product_id, item in session.get('cart', {}).items() %}
+            <div class="cart-item">
+                <span class="cart-item-name">{{ item.name }}</span>
+                <span class="cart-item-qty">${{ "%.2f"|format(item.price) }} x {{ item.quantity }}</span>
+                <div class="cart-item-actions">
+                    <a href="{{ url_for('decrement_from_cart', product_id=product_id) }}" class="decrement-item" title="Remove one">&minus;</a>
+                    <a href="{{ url_for('remove_from_cart', product_id=product_id) }}" class="remove-item">Remove</a>
+                </div>
+            </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
-<div class="cart-total">
-    <strong>Total: ${{ "%.2f"|format(total) }}</strong>
-</div>
-<button onclick="buyProducts()" class="buy-button">Complete Purchase</button>
+    <div class="cart-total">
+        <strong>Total: ${{ "%.2f"|format(total) }}</strong>
+    </div>
+    <button onclick="buyProducts()" class="buy-button">Complete Purchase</button>
 {% else %}
-<p>Your cart is empty</p>
+    <p>Your cart is empty</p>
 {% endif %}

@@ -12,8 +12,29 @@
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
         </div>
-        <button type="submit">Login</button>
+        <div class="form-group remember-me">
+            <label class="checkbox-label">
+                <input type="checkbox" id="remember" name="remember">
+                <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-password">Forgot password?</a>
+        </div>
+        <button type="submit" class="login-btn">Login</button>
     </form>
-    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+    <div class="divider">
+        <span>or continue with</span>
+    </div>
+    <div class="social-login">
+        <a href="https://accounts.google.com/signin" target="_blank" class="social-btn google-btn" title="Continue with Google">
+            <i class="fab fa-google"></i>
+        </a>
+        <a href="https://www.facebook.com/login" target="_blank" class="social-btn facebook-btn" title="Continue with Facebook">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://appleid.apple.com" target="_blank" class="social-btn apple-btn" title="Continue with Apple">
+            <i class="fab fa-apple"></i>
+        </a>
+    </div>
+    <p class="auth-footer">Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
 </div>
 {% endblock %}

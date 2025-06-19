@@ -5,12 +5,23 @@ import sqlite3
 from functools import wraps
 import os
 import json
+from datetime import datetime
+import pytz
+from chatbot import chatbot_bp
+from chatbot.rag_utils import RAGHelper
+import threading
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Change this to a secure secret key
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Register chatbot blueprint
+app.register_blueprint(chatbot_bp)
+
+# Initialize RAG helper for stock updates
+rag_helper = RAGHelper()
 
 # Ensure upload folder exists
 UPLOAD_FOLDER = 'static/images'
@@ -35,7 +46,6 @@ def admin_required(f):
 
     return decorated_function
 
-#neww
 def load_cart_from_db(user_id):
     conn = sqlite3.connect('instance/users.db')
     cursor = conn.cursor()
@@ -70,15 +80,15 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('catalog'))
-    return redirect(url_for('login'))
+    return redirect(url_for('catalog'))
 
-#new
+def calculate_cart_total(cart):
+    return sum(float(item['price']) * item['quantity'] for item in cart.values()) if cart else 0
+
 @app.route('/home')
 def home():
     cart = session.get('cart', {})
-    total = sum(float(item['price']) * item['quantity'] for item in cart.values()) if cart else 0
+    total = calculate_cart_total(cart)
     return render_template('home.html', total=total)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -128,7 +138,10 @@ def login():
 
             # Load cart from database into session
             session['cart'] = load_cart_from_db(user.id)
-            return redirect(url_for('catalog'))
+            
+            # Get the next parameter or default to catalog
+            next_page = request.args.get('next') or url_for('catalog')
+            return redirect(next_page)
 
         flash('Invalid username or password')
     return render_template('login.html')
@@ -146,26 +159,46 @@ def logout():
 
 
 @app.route('/catalog')
-@login_required
 def catalog():
     conn = sqlite3.connect('instance/catalog.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM products')
+    
+    # Get filter parameter from query string
+    equipment_type = request.args.get('type', '')
+    
+    if equipment_type:
+        # Filter products based on equipment type
+        if equipment_type == 'ski':
+            cursor.execute('SELECT * FROM products WHERE name LIKE ?', ('%Skis%',))
+        elif equipment_type == 'snowboard':
+            cursor.execute('SELECT * FROM products WHERE name LIKE ?', ('%Snowboard%',))
+        else:
+            cursor.execute('SELECT * FROM products')
+    else:
+        cursor.execute('SELECT * FROM products')
+        
     products = cursor.fetchall()
     conn.close()
 
-    cart = session.get('cart', {})
-    total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+    cart = session.get('cart', {}) if current_user.is_authenticated else {}
+    total = calculate_cart_total(cart) if current_user.is_authenticated else 0
 
     return render_template('catalog.html',
-                           products=products,
-                           cart=cart,
-                           total=total)
+                         products=products,
+                         cart=cart,
+                         total=total,
+                         current_filter=equipment_type)
 
 
 @app.route('/add_to_cart/<int:product_id>')
-@login_required
 def add_to_cart(product_id):
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': False,
+            'message': 'Please log in or register to add items to your cart.',
+            'redirect': url_for('login')
+        })
+
     if current_user.is_admin:
         return jsonify({'success': False, 'message': 'Admins cannot add items to cart.'})
 
@@ -195,10 +228,9 @@ def add_to_cart(product_id):
         session['cart'] = cart
         save_cart_to_db(current_user.id, cart)
 
-        # Generate updated cart HTML
         cart_html = render_template('cart_items.html',
-                                    cart=cart,
-                                    total=sum(float(item['price']) * item['quantity'] for item in cart.values()))
+                                 cart=cart,
+                                 total=sum(float(item['price']) * item['quantity'] for item in cart.values()))
 
         return jsonify({
             'success': True,
@@ -212,31 +244,100 @@ def add_to_cart(product_id):
 @login_required
 def remove_from_cart(product_id):
     cart = session.get('cart', {})
-    if str(product_id) in cart:
-        del cart[str(product_id)]
+    product_id_str = str(product_id)
+    
+    if product_id_str in cart:
+        del cart[product_id_str]
         session['cart'] = cart
-        # Save cart to database after modification
         save_cart_to_db(current_user.id, cart)
-    return redirect(url_for('catalog'))
+        total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+        cart_html = render_template('cart_items.html',
+                                  cart=cart,
+                                  total=total)
+        return jsonify({
+            'success': True,
+            'cart_count': len(cart),
+            'cart_html': cart_html
+        })
+    return jsonify({
+        'success': False,
+        'message': 'Product not found in cart'
+    })
 
+@app.route('/decrement_from_cart/<int:product_id>')
+@login_required
+def decrement_from_cart(product_id):
+    cart = session.get('cart', {})
+    product_id_str = str(product_id)
+    if product_id_str in cart:
+        if cart[product_id_str]['quantity'] > 1:
+            cart[product_id_str]['quantity'] -= 1
+        else:
+            del cart[product_id_str]
+        session['cart'] = cart
+        save_cart_to_db(current_user.id, cart)
+        total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+        cart_html = render_template('cart_items.html', cart=cart, total=total)
+        return jsonify({
+            'success': True,
+            'cart_count': len(cart),
+            'cart_html': cart_html
+        })
+    return jsonify({'success': False, 'message': 'Product not found in cart'})
 
 @app.route('/update_product', methods=['POST'])
 @admin_required
 def update_product():
-    product_id = request.form['product_id']
-    new_price = request.form['price']
-    new_stock = request.form['stock']
+    try:
+        # Check if request is JSON
+        if request.is_json:
+            data = request.get_json()
+            product_id = data.get('product_id')
+            new_price = data.get('price')
+            new_stock = data.get('stock')
+        else:
+            # For backward compatibility, also handle form data
+            product_id = request.form['product_id']
+            new_price = request.form['price']
+            new_stock = request.form['stock']
+        
+        conn = sqlite3.connect('instance/catalog.db')
+        cursor = conn.cursor()
+        cursor.execute('UPDATE products SET price = ?, stock = ? WHERE id = ?',
+                    (new_price, new_stock, product_id))
+        conn.commit()
+        conn.close()
+        
+        # If it's an AJAX request, return JSON
+        if request.is_json:
+            return jsonify({
+                'success': True,
+                'message': 'Product updated successfully!',
+                'product': {
+                    'id': product_id,
+                    'price': new_price,
+                    'stock': new_stock
+                }
+            })
+        
+        # Otherwise, redirect for traditional form submit
+        flash('Product updated successfully!')
+        return redirect(url_for('catalog'))
+    except Exception as e:
+        if request.is_json:
+            return jsonify({
+                'success': False,
+                'message': f'Error updating product: {str(e)}'
+            })
+        flash(f'Error updating product: {str(e)}')
+        return redirect(url_for('catalog'))
 
-    conn = sqlite3.connect('instance/catalog.db')
-    cursor = conn.cursor()
-    cursor.execute('UPDATE products SET price = ?, stock = ? WHERE id = ?',
-                   (new_price, new_stock, product_id))
-    conn.commit()
-    conn.close()
-
-    flash('Product updated successfully!')
-    return redirect(url_for('catalog'))
-
+def update_rag_embeddings_async():
+    """Update RAG embeddings in a background thread"""
+    try:
+        rag_helper.clear_embeddings()
+    except Exception as e:
+        print(f"Error updating RAG embeddings: {str(e)}")
 
 @app.route('/buy_products', methods=['POST'])
 @login_required
@@ -253,23 +354,25 @@ def buy_products():
     cursor_catalog = conn_catalog.cursor()
     cursor_users = conn_users.cursor()
 
+    updated_products = []
+
     try:
-        # Check stock availability and update stock
         for product_id, item in cart.items():
             cursor_catalog.execute('SELECT stock FROM products WHERE id = ?', (product_id,))
             current_stock = cursor_catalog.fetchone()[0]
 
             if current_stock < item['quantity']:
                 raise Exception(f'Not enough stock available for {item["name"]}')
-
-            # Update stock
+            new_stock = current_stock - item['quantity']
             cursor_catalog.execute('''
                 UPDATE products 
-                SET stock = stock - ? 
+                SET stock = ? 
                 WHERE id = ?
-            ''', (item['quantity'], product_id))
-
-            # Record purchase in history
+            ''', (new_stock, product_id))
+            updated_products.append({
+                'id': product_id,
+                'stock': new_stock
+            })
             cursor_users.execute('''
                 INSERT INTO purchase_history 
                 (user_id, product_id, product_name, quantity, price)
@@ -279,12 +382,18 @@ def buy_products():
 
         conn_catalog.commit()
         conn_users.commit()
-
-        # Clear cart
         session.pop('cart', None)
-        save_cart_to_db(current_user.id, {})
+        
+        # Update RAG embeddings in background
+        thread = threading.Thread(target=update_rag_embeddings_async)
+        thread.daemon = True
+        thread.start()
 
-        return jsonify({'success': True, 'message': 'Purchase successful!'})
+        return jsonify({
+            'success': True,
+            'message': 'Purchase successful!',
+            'updated_products': updated_products
+        })
 
     except Exception as e:
         conn_catalog.rollback()
@@ -306,9 +415,8 @@ def product_details(product_id):
 
     if product:
         specifications = json.loads(product[6]) if product[6] else {}
-        # Calculate cart total
-        cart = session.get('cart', {})
-        total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+        cart = session.get('cart', {}) if current_user.is_authenticated else {}
+        total = calculate_cart_total(cart) if current_user.is_authenticated else 0
         return render_template('product_details.html',
                              product=product,
                              specifications=specifications,
@@ -322,22 +430,39 @@ def purchase_history():
     if current_user.is_admin:
         return redirect(url_for('catalog'))
 
-    conn = sqlite3.connect('instance/users.db')
-    cursor = conn.cursor()
-    cursor.execute('''
+    conn_users = sqlite3.connect('instance/users.db')
+    cursor_users = conn_users.cursor()
+    cursor_users.execute('''
         SELECT * FROM purchase_history 
         WHERE user_id = ? 
         ORDER BY purchase_date DESC
     ''', (current_user.id,))
-    purchases = cursor.fetchall()
-    conn.close()
+    purchases = cursor_users.fetchall()
+    conn_users.close()
 
-    # Calculate the total for the cart
+    conn_catalog = sqlite3.connect('instance/catalog.db')
+    cursor_catalog = conn_catalog.cursor()
+    purchases_with_images = []
+    kyiv_tz = pytz.timezone('Europe/Kiev')
+    for purchase in purchases:
+        purchase_list = list(purchase)
+        # Get image filename from products table
+        cursor_catalog.execute('SELECT image_filename FROM products WHERE id = ?', (purchase[2],))
+        result = cursor_catalog.fetchone()
+        image_filename = result[0] if result else 'placeholder.jpg'
+        purchase_list.append(image_filename)
+        # Convert date to Kyiv timezone
+        if isinstance(purchase_list[6], str):
+            dt = datetime.strptime(purchase_list[6], '%Y-%m-%d %H:%M:%S')
+            dt = pytz.utc.localize(dt).astimezone(kyiv_tz)
+            purchase_list[6] = dt
+        purchases_with_images.append(tuple(purchase_list))
+    conn_catalog.close()
+
     cart = session.get('cart', {})
-    total = sum(float(item['price']) * item['quantity'] for item in cart.values())
+    total = calculate_cart_total(cart)
 
-    return render_template('purchase_history.html', purchases=purchases, total=total)
-
+    return render_template('purchase_history.html', purchases=purchases_with_images, total=total)
 
 if __name__ == '__main__':
     app.run(debug=True)
